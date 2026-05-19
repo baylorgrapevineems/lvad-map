@@ -1,0 +1,5 @@
+node_modules/
+lvad_patients.json
+.env
+.env.local
+.vercel

@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LVAD Patient Admin – BSW DFW</title>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+header {
+  background: #0d1220;
+  color: #fff;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hdr-left   { display: flex; align-items: center; gap: 14px; }
+.hdr-heart  { color: #e74c3c; font-size: 28px; }
+header h1   { margin: 0; font-size: 22px; }
+header .sub { margin: 0; font-size: 12px; color: rgba(255,255,255,0.4); }
+.hdr-link   {
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  padding: 6px 14px;
+}
+.hdr-link:hover { background: rgba(255,255,255,0.1); }
+
+.page { max-width: 1320px; margin: 0 auto; padding: 24px 20px; }
+
+.top-grid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 20px;
+  align-items: start;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 24px;
+}
+.card h2 {
+  margin: 0 0 18px;
+  font-size: 18px;
+  border-bottom: 2px solid #f0f2f5;
+  padding-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card h2 .edit-badge {
+  background: #e67e22;
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.form-row { margin-bottom: 14px; }
+label {
+  display: block;
+  font-size: 11px;
+  font-weight: bold;
+  color: #666;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+input[type=text], select, textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #d0d4db;
+  border-radius: 7px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fafbfc;
+  transition: border-color 0.18s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #1a1a2e;
+  background: #fff;
+}
+textarea { resize: vertical; min-height: 64px; }
+
+.form-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+/* Address autocomplete */
+.addr-wrap { position: relative; }
+#suggestions {
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  background: #fff;
+  border: 1px solid #d0d4db;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  z-index: 400;
+  max-height: 210px;
+  overflow-y: auto;
+  display: none;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+.sug-item {
+  padding: 9px 11px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.sug-item:hover { background: #f0f2f5; }
+.sug-item:last-child { border-bottom: none; }
+
+.coords-note { margin-top: 5px; font-size: 11px; color: #999; min-height: 16px; }
+
+/* Submit / cancel */
+.btn-row { display: flex; gap: 10px; margin-top: 10px; }
+.btn-primary {
+  flex: 1;
+  padding: 12px;
+  background: #1a1a2e;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.btn-primary:hover    { background: #2d2d4e; }
+.btn-primary:disabled { background: #999; cursor: not-allowed; }
+.btn-primary.editing  { background: #e67e22; }
+.btn-primary.editing:hover { background: #d35400; }
+
+.btn-cancel {
+  padding: 12px 18px;
+  background: none;
+  border: 1px solid #d0d4db;
+  border-radius: 7px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #555;
+  display: none;
+}
+.btn-cancel.show { display: block; }
+.btn-cancel:hover { border-color: #999; }
+
+/* Toast */
+#toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: #1a1a2e;
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 9px;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 9999;
+  pointer-events: none;
+}
+#toast.show  { opacity: 1; transform: translateY(0); }
+#toast.error { background: #c0392b; }
+#toast.ok    { background: #1e7a34; }
+
+/* Map preview */
+#previewMap {
+  height: 320px;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid #d0d4db;
+}
+
+/* Patient table */
+.cases-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cases-header h2 { margin: 0; font-size: 18px; }
+.badge {
+  background: #1a1a2e;
+  color: #fff;
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 12px;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  text-align: left;
+  padding: 9px 11px;
+  background: #f0f2f5;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+  border-bottom: 2px solid #e0e3e8;
+}
+tbody tr { border-bottom: 1px solid #f0f2f5; }
+tbody tr:hover { background: #fafbfc; }
+tbody td { padding: 9px 11px; vertical-align: middle; }
+
+.td-name   { font-weight: bold; color: #1a1a2e; }
+.td-device { color: #555; }
+.td-phone  { color: #444; font-size: 12px; }
+.td-hosp   { font-size: 12px; color: #666; max-width: 160px; }
+
+.hosp-chip {
+  display: inline-block;
+  background: #e8eeff;
+  color: #2c3e9b;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.action-btns { display: flex; gap: 6px; }
+.edit-btn {
+  background: none;
+  border: 1px solid #d0d4db;
+  border-radius: 5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #1a1a2e;
+}
+.edit-btn:hover { background: #e8eeff; border-color: #2c3e9b; }
+.del-btn {
+  background: none;
+  border: 1px solid #d0d4db;
+  border-radius: 5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #c0392b;
+}
+.del-btn:hover { background: #fde8e8; border-color: #c0392b; }
+
+.empty-state { text-align: center; color: #bbb; padding: 32px; font-size: 14px; }
+
+datalist option { background: #fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <span class="hdr-heart">♥</span>
+    <div>
+      <h1>LVAD Patient Admin</h1>
+      <p class="sub">Manage LVAD patients displayed on the map</p>
+    </div>
+  </div>
+  <a href="index.html" class="hdr-link">↩ View Map</a>
+</header>
+
+<div class="page">
+  <div class="top-grid">
+
+    <!-- FORM -->
+    <div class="card">
+      <h2 id="formTitle">Add New Patient <span id="editBadge" class="edit-badge" style="display:none">Editing</span></h2>
+      <form id="patientForm" autocomplete="off">
+
+        <div class="form-two">
+          <div class="form-row">
+            <label>Patient Name <span style="color:#e74c3c">*</span></label>
+            <input type="text" id="fName" placeholder="Last, First" required>
+          </div>
+          <div class="form-row">
+            <label>Assigned Hospital <span style="color:#e74c3c">*</span></label>
+            <select id="fHospital" required>
+              <option value="">— select —</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-two">
+          <div class="form-row">
+            <label>Phone</label>
+            <input type="text" id="fPhone" placeholder="(817) 555-0100">
+          </div>
+          <div class="form-row">
+            <label>Emergency Contact</label>
+            <input type="text" id="fEmergency" placeholder="Name – (817) 555-0101">
+          </div>
+        </div>
+
+        <div class="form-two">
+          <div class="form-row">
+            <label>LVAD Device</label>
+            <input type="text" id="fDevice" placeholder="HeartMate 3" list="deviceList">
+            <datalist id="deviceList">
+              <option value="HeartMate 3">
+              <option value="HeartMate II">
+              <option value="HeartWare HVAD">
+              <option value="Jarvik 2000">
+              <option value="EVAHEART 2">
+            </datalist>
+          </div>
+          <div class="form-row">
+            <label>Device Settings / Parameters</label>
+            <input type="text" id="fSettings" placeholder="e.g. 5800 RPM, Flow 4.2 L/min">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Home Address <span style="color:#e74c3c">*</span></label>
+          <div class="addr-wrap">
+            <input type="text" id="fAddress" placeholder="Type address to search…" autocomplete="off">
+            <div id="suggestions"></div>
+          </div>
+          <div class="coords-note" id="coordsNote">No location selected</div>
+        </div>
+
+        <div class="form-row">
+          <label>Clinical Notes</label>
+          <textarea id="fNotes" placeholder="Optional: relevant clinical or contact notes…"></textarea>
+        </div>
+
+        <input type="hidden" id="fLat">
+        <input type="hidden" id="fLng">
+
+        <div class="btn-row">
+          <button type="submit" id="submitBtn" class="btn-primary" disabled>Add Patient</button>
+          <button type="button" id="cancelBtn" class="btn-cancel">Cancel Edit</button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- MAP PREVIEW -->
+    <div class="card" style="padding: 18px;">
+      <h2>Location Preview</h2>
+      <div id="previewMap"></div>
+      <p style="margin: 8px 0 0; font-size: 12px; color: #999;">
+        Search an address above to verify pin placement.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- PATIENT LIST -->
+  <div class="card" style="margin-top: 20px;">
+    <div class="cases-header">
+      <h2>Registered Patients</h2>
+      <span class="badge" id="totalBadge">0 patients</span>
+    </div>
+    <div id="patientList"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const MAPBOX_TOKEN = "pk.eyJ1Ijoicm9iZXJ0LWJhY2EiLCJhIjoiY21qZDY2bzc5MDJ5cTNlcTMycGcwZzNseSJ9.3PtD6J31bsQMfx8O4belww";
+mapboxgl.accessToken = MAPBOX_TOKEN;
+
+const DFW_BOUNDS = [[-97.85, 32.25], [-96.35, 33.35]];
+
+let hospitals    = [];
+let selectedLat  = null;
+let selectedLng  = null;
+let editingId    = null;
+let geoTimer     = null;
+let previewMarker = null;
+
+/* ---- MINI MAP ---- */
+const previewMap = new mapboxgl.Map({
+  container: 'previewMap',
+  style: 'mapbox://styles/mapbox/streets-v12',
+  interactive: true,
+  attributionControl: false
+});
+previewMap.fitBounds(DFW_BOUNDS, { padding: 10, duration: 0 });
+
+function setPreviewMarker(lng, lat) {
+  if (previewMarker) previewMarker.remove();
+  previewMarker = new mapboxgl.Marker({ color: '#e74c3c' })
+    .setLngLat([lng, lat]).addTo(previewMap);
+  previewMap.flyTo({ center: [lng, lat], zoom: 13, duration: 500 });
+}
+
+/* ---- LOAD HOSPITALS ---- */
+async function loadHospitals() {
+  const res = await fetch('/api/hospitals');
+  hospitals = await res.json();
+  const sel = document.getElementById('fHospital');
+  hospitals.forEach(h => sel.appendChild(new Option(h.name, h.id)));
+}
+
+/* ---- GEOCODING ---- */
+document.getElementById('fAddress').addEventListener('input', e => {
+  clearTimeout(geoTimer);
+  const q = e.target.value.trim();
+  if (q.length < 4) { hideSug(); return; }
+  geoTimer = setTimeout(() => geocode(q), 360);
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.addr-wrap')) hideSug();
+});
+
+async function geocode(query) {
+  const bbox = '-97.9,32.2,-96.3,33.5';
+  const url  = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`
+             + `?access_token=${MAPBOX_TOKEN}&bbox=${bbox}&limit=6&country=US`;
+  try {
+    const data = await fetch(url).then(r => r.json());
+    showSug(data.features || []);
+  } catch {}
+}
+
+function showSug(features) {
+  const box = document.getElementById('suggestions');
+  if (!features.length) { hideSug(); return; }
+  box.innerHTML = features.map(f =>
+    `<div class="sug-item" data-lng="${f.center[0]}" data-lat="${f.center[1]}">${f.place_name}</div>`
+  ).join('');
+  box.style.display = 'block';
+  box.querySelectorAll('.sug-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const lat = parseFloat(el.dataset.lat);
+      const lng = parseFloat(el.dataset.lng);
+      selectedLat = lat; selectedLng = lng;
+      document.getElementById('fLat').value = lat;
+      document.getElementById('fLng').value = lng;
+      document.getElementById('fAddress').value = el.textContent.trim();
+      document.getElementById('coordsNote').textContent =
+        `Lat: ${lat.toFixed(5)}   Lng: ${lng.toFixed(5)}`;
+      setPreviewMarker(lng, lat);
+      hideSug();
+      checkSubmit();
+    });
+  });
+}
+
+function hideSug() {
+  document.getElementById('suggestions').style.display = 'none';
+}
+
+/* ---- SUBMIT ENABLE ---- */
+function checkSubmit() {
+  const ok = document.getElementById('fName').value.trim()
+    && document.getElementById('fHospital').value
+    && selectedLat !== null;
+  document.getElementById('submitBtn').disabled = !ok;
+}
+
+['fName','fHospital','fDevice','fSettings','fPhone','fEmergency','fNotes'].forEach(id => {
+  document.getElementById(id).addEventListener('input', checkSubmit);
+});
+
+/* ---- SUBMIT ---- */
+document.getElementById('patientForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!selectedLat) return;
+
+  const btn = document.getElementById('submitBtn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = editingId ? 'Saving…' : 'Adding…';
+
+  const payload = {
+    name:             document.getElementById('fName').value.trim(),
+    phone:            document.getElementById('fPhone').value.trim(),
+    emergencyContact: document.getElementById('fEmergency').value.trim(),
+    lvadDevice:       document.getElementById('fDevice').value.trim(),
+    lvadSettings:     document.getElementById('fSettings').value.trim(),
+    hospital:         document.getElementById('fHospital').value,
+    address:          document.getElementById('fAddress').value.trim(),
+    lat:              selectedLat,
+    lng:              selectedLng,
+    notes:            document.getElementById('fNotes').value.trim()
+  };
+
+  try {
+    const url    = editingId ? `/api/patients/${editingId}` : '/api/patients';
+    const method = editingId ? 'PUT' : 'POST';
+    const res    = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Server error');
+
+    showToast(editingId ? 'Patient updated.' : 'Patient added to map.', 'ok');
+    resetForm();
+    loadPatients();
+  } catch (err) {
+    showToast(err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
+});
+
+/* ---- EDIT ---- */
+function startEdit(patient) {
+  editingId = patient.id;
+
+  document.getElementById('fName').value      = patient.name || '';
+  document.getElementById('fPhone').value     = patient.phone || '';
+  document.getElementById('fEmergency').value = patient.emergencyContact || '';
+  document.getElementById('fDevice').value    = patient.lvadDevice || '';
+  document.getElementById('fSettings').value  = patient.lvadSettings || '';
+  document.getElementById('fHospital').value  = patient.hospital || '';
+  document.getElementById('fAddress').value   = patient.address || '';
+  document.getElementById('fNotes').value     = patient.notes || '';
+  document.getElementById('fLat').value       = patient.lat;
+  document.getElementById('fLng').value       = patient.lng;
+  selectedLat = patient.lat;
+  selectedLng = patient.lng;
+
+  if (patient.lat && patient.lng) setPreviewMarker(patient.lng, patient.lat);
+
+  document.getElementById('coordsNote').textContent =
+    `Lat: ${Number(patient.lat).toFixed(5)}   Lng: ${Number(patient.lng).toFixed(5)}`;
+
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = 'Update Patient';
+  btn.classList.add('editing');
+  btn.disabled = false;
+
+  document.getElementById('cancelBtn').classList.add('show');
+  document.getElementById('editBadge').style.display = '';
+  document.getElementById('formTitle').childNodes[0].textContent = 'Edit Patient ';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('cancelBtn').addEventListener('click', resetForm);
+
+/* ---- RESET ---- */
+function resetForm() {
+  editingId = null;
+  selectedLat = selectedLng = null;
+  document.getElementById('patientForm').reset();
+  document.getElementById('fLat').value = '';
+  document.getElementById('fLng').value = '';
+  document.getElementById('coordsNote').textContent = 'No location selected';
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = 'Add Patient';
+  document.getElementById('submitBtn').classList.remove('editing');
+  document.getElementById('cancelBtn').classList.remove('show');
+  document.getElementById('editBadge').style.display = 'none';
+  document.getElementById('formTitle').childNodes[0].textContent = 'Add New Patient ';
+  if (previewMarker) { previewMarker.remove(); previewMarker = null; }
+  previewMap.fitBounds(DFW_BOUNDS, { padding: 10, duration: 500 });
+}
+
+/* ---- DELETE ---- */
+async function deletePatient(id, name) {
+  if (!confirm(`Remove "${name}" from the map? This cannot be undone.`)) return;
+  try {
+    const res  = await fetch(`/api/patients/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Delete failed');
+    showToast(`${name} removed. ${data.total} patient(s) remaining.`, 'ok');
+    if (editingId === id) resetForm();
+    loadPatients();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+/* ---- LOAD PATIENTS ---- */
+async function loadPatients() {
+  try {
+    const patients = await fetch('/api/patients').then(r => r.json());
+
+    document.getElementById('totalBadge').textContent =
+      `${patients.length} patient${patients.length !== 1 ? 's' : ''}`;
+
+    const container = document.getElementById('patientList');
+    if (!patients.length) {
+      container.innerHTML = `<div class="empty-state">No patients registered yet.</div>`;
+      return;
+    }
+
+    const rows = patients.map(p => {
+      const hosp = hospitals.find(h => h.id === p.hospital);
+      const hospName = hosp ? hosp.name.replace('BSW Medical Center – ', '').replace('Baylor ', '') : p.hospital || '—';
+      return `<tr>
+        <td class="td-name">${esc(p.name)}</td>
+        <td class="td-device">${esc(p.lvadDevice || '—')}</td>
+        <td class="td-phone">${esc(p.phone || '—')}</td>
+        <td class="td-hosp"><span class="hosp-chip">${esc(hospName)}</span></td>
+        <td class="td-device" style="font-size:11px;color:#999">${esc(p.address || '—')}</td>
+        <td>
+          <div class="action-btns">
+            <button class="edit-btn" data-id="${p.id}">Edit</button>
+            <button class="del-btn" data-id="${p.id}" data-name="${esc(p.name)}">Remove</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Device</th><th>Phone</th><th>Hospital</th><th>Address</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    container.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = patients.find(x => x.id === btn.dataset.id);
+        if (p) startEdit(p);
+      });
+    });
+
+    container.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', () => deletePatient(btn.dataset.id, btn.dataset.name));
+    });
+
+  } catch {
+    document.getElementById('patientList').innerHTML =
+      `<div class="empty-state">Could not load patients — is the server running?</div>`;
+  }
+}
+
+/* ---- TOAST ---- */
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ---- INIT ---- */
+loadHospitals().then(loadPatients);
+</script>
+</body>
+</html>

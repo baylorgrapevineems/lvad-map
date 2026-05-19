@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LVAD Patient Monitor – BSW DFW</title>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
+
+/* TOP BAR */
+#topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: rgba(8, 12, 24, 0.97);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+}
+
+.title {
+  color: #fff;
+  font-size: 17px;
+  font-weight: bold;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.title-heart { color: #e74c3c; font-size: 22px; }
+.title-sub   { color: rgba(255,255,255,0.35); font-size: 11px; font-weight: normal; display: block; }
+
+.topbar-select {
+  padding: 7px 11px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 7px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 0;
+}
+.topbar-select option { background: #1a1a2e; color: #fff; }
+
+#hospitalSelect { flex: 1; max-width: 350px; }
+#filterSelect   { width: 180px; }
+
+.patient-badge {
+  background: #e74c3c;
+  color: #fff;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.last-updated {
+  color: rgba(255,255,255,0.35);
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.8);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.16); }
+
+/* MAP */
+#map {
+  position: fixed;
+  top: 60px; left: 0; right: 0; bottom: 0;
+}
+
+/* HOSPITAL MARKER */
+.hospital-marker {
+  width: 34px; height: 34px;
+  background: #1a5fcc;
+  border: 3px solid rgba(255,255,255,0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  font-size: 17px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  transition: transform 0.15s;
+}
+.hospital-marker:hover { transform: scale(1.15); }
+
+/* LVAD PATIENT MARKER */
+.patient-marker {
+  width: 44px; height: 44px;
+  position: relative;
+  cursor: pointer;
+}
+.patient-marker .dot {
+  position: absolute;
+  inset: 10px;
+  background: #e74c3c;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  z-index: 2;
+  transition: transform 0.15s;
+  box-shadow: 0 2px 6px rgba(231,76,60,0.6);
+}
+.patient-marker:hover .dot { transform: scale(1.2); }
+.patient-marker.active .dot { background: #c0392b; outline: 3px solid #fff; }
+
+.patient-marker::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(231, 76, 60, 0.55);
+  animation: lvad-pulse 2s ease-out infinite;
+}
+@keyframes lvad-pulse {
+  0%   { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+/* DETAIL PANEL */
+#detailPanel {
+  position: fixed;
+  top: 60px; right: -400px;
+  width: 370px;
+  bottom: 0;
+  background: #0d1220;
+  border-left: 1px solid rgba(255,255,255,0.1);
+  z-index: 300;
+  transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+#detailPanel.open { right: 0; }
+
+#detailInner { padding: 22px 20px 32px; }
+
+.panel-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: #fff;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.panel-close:hover { background: rgba(255,255,255,0.22); }
+
+.panel-tag {
+  display: inline-block;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  padding: 3px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.panel-name {
+  color: #fff;
+  font-size: 22px;
+  font-weight: bold;
+  margin: 0 36px 3px 0;
+  line-height: 1.2;
+}
+
+.panel-hosp {
+  color: rgba(255,255,255,0.4);
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+
+.panel-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin: 14px 0;
+}
+
+.panel-section {
+  color: rgba(255,255,255,0.35);
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
+.panel-field { margin-bottom: 12px; }
+
+.panel-label {
+  color: rgba(255,255,255,0.38);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+}
+
+.panel-value {
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.copy-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.65);
+  border-radius: 4px;
+  padding: 3px 9px;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.copy-btn:hover  { background: rgba(255,255,255,0.16); }
+.copy-btn.copied { color: #2ecc71; border-color: #2ecc71; }
+
+.device-card {
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.28);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+}
+.device-name     { color: #fff; font-size: 15px; font-weight: bold; margin-bottom: 3px; }
+.device-settings { color: rgba(255,255,255,0.65); font-size: 13px; }
+
+.notes-box {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: rgba(255,255,255,0.65);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* LEGEND */
+#legend {
+  position: fixed;
+  bottom: 28px; left: 20px;
+  background: rgba(8, 12, 24, 0.88);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 11px 15px;
+  z-index: 200;
+  color: #fff;
+  font-size: 12px;
+}
+.leg { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; }
+.leg:last-child { margin-bottom: 0; }
+.leg-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.leg-red  { background: #e74c3c; }
+.leg-blue { background: #1a5fcc; border: 2px solid rgba(255,255,255,0.8); }
+
+/* EMPTY STATE */
+#emptyState {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: rgba(255,255,255,0.35);
+  z-index: 150;
+  pointer-events: none;
+  display: none;
+}
+#emptyState.show { display: block; }
+#emptyState .es-icon { font-size: 44px; margin-bottom: 10px; }
+#emptyState p { font-size: 15px; margin: 0 0 6px; }
+#emptyState .es-sub { font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="title">
+    <span class="title-heart">♥</span>
+    <span>LVAD Patient Monitor<span class="title-sub">Baylor Scott &amp; White · DFW</span></span>
+  </div>
+
+  <select id="hospitalSelect" class="topbar-select" title="Center map on hospital">
+    <option value="">— Center on Hospital —</option>
+  </select>
+
+  <select id="filterSelect" class="topbar-select" title="Filter patients by hospital">
+    <option value="">All Patients</option>
+  </select>
+
+  <span class="patient-badge" id="patientCount">0 patients</span>
+  <span class="last-updated" id="lastUpdated">—</span>
+  <button class="icon-btn" id="refreshBtn">↻ Refresh</button>
+  <a href="admin.html" class="icon-btn">Admin</a>
+  <span style="color:rgba(255,255,255,0.6);font-size:12px;white-space:nowrap;flex-shrink:0;">A Baylor Grapevine Solution</span>
+</div>
+
+<div id="map"></div>
+
+<div id="detailPanel">
+  <button class="panel-close" id="panelClose" title="Close">✕</button>
+  <div id="detailInner"></div>
+</div>
+
+<div id="legend">
+  <div class="leg"><div class="leg-dot leg-red"></div>LVAD Patient</div>
+  <div class="leg"><div class="leg-dot leg-blue"></div>BSW Hospital</div>
+</div>
+
+<div id="emptyState">
+  <div class="es-icon">♥</div>
+  <p>No LVAD patients registered</p>
+  <p class="es-sub">Add patients via the <a href="admin.html" style="color:#e74c3c">Admin panel</a></p>
+</div>
+
+<script>
+const MAPBOX_TOKEN = "pk.eyJ1Ijoicm9iZXJ0LWJhY2EiLCJhIjoiY21qZDY2bzc5MDJ5cTNlcTMycGcwZzNseSJ9.3PtD6J31bsQMfx8O4belww";
+mapboxgl.accessToken = MAPBOX_TOKEN;
+
+const DFW_BOUNDS = [[-97.85, 32.25], [-96.35, 33.35]];
+
+let hospitals       = [];
+let patients        = [];
+let patientMarkers  = [];
+let hospitalMarkers = [];
+let activePatientId = null;
+let filterHospId    = '';
+
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v11',
+  attributionControl: false,
+  interactive: true
+});
+map.fitBounds(DFW_BOUNDS, { padding: 50, duration: 0 });
+map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+/* ---- HOSPITALS ---- */
+async function loadHospitals() {
+  const res = await fetch('/api/hospitals');
+  hospitals = await res.json();
+
+  const hSel = document.getElementById('hospitalSelect');
+  const fSel = document.getElementById('filterSelect');
+  hospitals.forEach(h => {
+    const o1 = new Option(h.name, h.id);
+    const o2 = new Option(h.name, h.id);
+    hSel.appendChild(o1);
+    fSel.appendChild(o2);
+  });
+
+  drawHospitalMarkers();
+}
+
+function drawHospitalMarkers() {
+  hospitalMarkers.forEach(m => m.remove());
+  hospitalMarkers = [];
+  hospitals.forEach(h => {
+    const el = document.createElement('div');
+    el.className = 'hospital-marker';
+    el.innerHTML = '+';
+    el.title = h.name;
+    el.addEventListener('click', () => {
+      document.getElementById('hospitalSelect').value = h.id;
+      flyTo(h.lng, h.lat, 12);
+    });
+    hospitalMarkers.push(
+      new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([h.lng, h.lat])
+        .addTo(map)
+    );
+  });
+}
+
+/* ---- PATIENTS ---- */
+async function loadPatients() {
+  try {
+    const res = await fetch('/api/patients');
+    patients = await res.json();
+    drawPatientMarkers();
+    updateCount();
+    document.getElementById('lastUpdated').textContent =
+      'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    document.getElementById('lastUpdated').textContent = 'Load failed';
+  }
+}
+
+function visiblePatients() {
+  return filterHospId ? patients.filter(p => p.hospital === filterHospId) : patients;
+}
+
+function drawPatientMarkers() {
+  patientMarkers.forEach(m => m.remove());
+  patientMarkers = [];
+
+  visiblePatients().forEach(patient => {
+    const el = document.createElement('div');
+    el.className = 'patient-marker' + (patient.id === activePatientId ? ' active' : '');
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    dot.innerHTML = '♥';
+    el.appendChild(dot);
+    el.addEventListener('click', () => showDetail(patient));
+
+    patientMarkers.push(
+      new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([patient.lng, patient.lat])
+        .addTo(map)
+    );
+  });
+
+  const vis = visiblePatients();
+  document.getElementById('emptyState').classList.toggle('show', vis.length === 0);
+}
+
+/* ---- DETAIL PANEL ---- */
+function showDetail(patient) {
+  activePatientId = patient.id;
+  drawPatientMarkers();
+
+  const hosp = hospitals.find(h => h.id === patient.hospital);
+  const hospName = hosp ? hosp.name : (patient.hospital || '—');
+
+  const html = `
+    <div class="panel-tag">LVAD Patient</div>
+    <h2 class="panel-name">${esc(patient.name)}</h2>
+    <div class="panel-hosp">${esc(hospName)}</div>
+
+    ${patient.lvadDevice ? `
+    <div class="device-card">
+      <div class="device-name">&#9829; ${esc(patient.lvadDevice)}</div>
+      ${patient.lvadSettings ? `<div class="device-settings">${esc(patient.lvadSettings)}</div>` : ''}
+    </div>` : ''}
+
+    <hr class="panel-divider">
+    <p class="panel-section">Contact</p>
+
+    ${patient.phone ? `
+    <div class="panel-field">
+      <div class="panel-label">Phone</div>
+      <div class="panel-row">
+        <span class="panel-value">${esc(patient.phone)}</span>
+        <button class="copy-btn" data-copy="${esc(patient.phone)}">Copy</button>
+      </div>
+    </div>` : ''}
+
+    ${patient.emergencyContact ? `
+    <div class="panel-field">
+      <div class="panel-label">Emergency Contact</div>
+      <div class="panel-row">
+        <span class="panel-value">${esc(patient.emergencyContact)}</span>
+        <button class="copy-btn" data-copy="${esc(patient.emergencyContact)}">Copy</button>
+      </div>
+    </div>` : ''}
+
+    <hr class="panel-divider">
+    <p class="panel-section">Location</p>
+
+    <div class="panel-field">
+      <div class="panel-label">Address</div>
+      <div class="panel-value">${esc(patient.address || '—')}</div>
+    </div>
+
+    ${patient.notes ? `
+    <hr class="panel-divider">
+    <p class="panel-section">Notes</p>
+    <div class="notes-box">${esc(patient.notes)}</div>` : ''}
+  `;
+
+  document.getElementById('detailInner').innerHTML = html;
+
+  document.querySelectorAll('.copy-btn[data-copy]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+      });
+    });
+  });
+
+  document.getElementById('detailPanel').classList.add('open');
+  flyTo(patient.lng, patient.lat, 13);
+}
+
+function closeDetail() {
+  activePatientId = null;
+  document.getElementById('detailPanel').classList.remove('open');
+  drawPatientMarkers();
+}
+
+/* ---- HELPERS ---- */
+function flyTo(lng, lat, zoom) {
+  map.flyTo({ center: [lng, lat], zoom, duration: 900, essential: true });
+}
+
+function updateCount() {
+  const vis = visiblePatients();
+  document.getElementById('patientCount').textContent =
+    `${vis.length} patient${vis.length !== 1 ? 's' : ''}`;
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* ---- CONTROLS ---- */
+document.getElementById('hospitalSelect').addEventListener('change', e => {
+  const id = e.target.value;
+  if (!id) { map.fitBounds(DFW_BOUNDS, { padding: 50, duration: 1000 }); return; }
+  const h = hospitals.find(h => h.id === id);
+  if (h) flyTo(h.lng, h.lat, 12);
+});
+
+document.getElementById('filterSelect').addEventListener('change', e => {
+  filterHospId = e.target.value;
+  closeDetail();
+  drawPatientMarkers();
+  updateCount();
+});
+
+document.getElementById('panelClose').addEventListener('click', closeDetail);
+document.getElementById('refreshBtn').addEventListener('click', loadPatients);
+
+setInterval(loadPatients, 30000);
+
+/* ---- INIT ---- */
+map.on('load', async () => {
+  await loadHospitals();
+  await loadPatients();
+});
+</script>
+</body>
+</html>
