@@ -327,6 +327,22 @@ datalist option { background: #fff; }
           <div class="coords-note" id="coordsNote">No location selected</div>
         </div>
 
+        <div class="form-two">
+          <div class="form-row">
+            <label>Implant Center</label>
+            <input type="text" id="fImplantCenter" placeholder="e.g. UT Southwestern, Baylor Dallas">
+          </div>
+          <div class="form-row">
+            <label>Implant Center Phone</label>
+            <input type="text" id="fImplantCenterPhone" placeholder="(214) 555-0100">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>LVAD Bag Location</label>
+          <input type="text" id="fLVADBagLocation" placeholder="e.g. Back of Unit 4, Cabinet B">
+        </div>
+
         <div class="form-row">
           <label>Clinical Notes</label>
           <textarea id="fNotes" placeholder="Optional: relevant clinical or contact notes…"></textarea>
@@ -461,7 +477,7 @@ function checkSubmit() {
   document.getElementById('submitBtn').disabled = !ok;
 }
 
-['fName','fHospital','fDevice','fSettings','fPhone','fEmergency','fNotes'].forEach(id => {
+['fName','fHospital','fDevice','fSettings','fPhone','fEmergency','fNotes','fImplantCenter','fImplantCenterPhone','fLVADBagLocation'].forEach(id => {
   document.getElementById(id).addEventListener('input', checkSubmit);
 });
 
@@ -476,16 +492,19 @@ document.getElementById('patientForm').addEventListener('submit', async e => {
   btn.textContent = editingId ? 'Saving…' : 'Adding…';
 
   const payload = {
-    name:             document.getElementById('fName').value.trim(),
-    phone:            document.getElementById('fPhone').value.trim(),
-    emergencyContact: document.getElementById('fEmergency').value.trim(),
-    lvadDevice:       document.getElementById('fDevice').value.trim(),
-    lvadSettings:     document.getElementById('fSettings').value.trim(),
-    hospital:         document.getElementById('fHospital').value,
-    address:          document.getElementById('fAddress').value.trim(),
-    lat:              selectedLat,
-    lng:              selectedLng,
-    notes:            document.getElementById('fNotes').value.trim()
+    name:               document.getElementById('fName').value.trim(),
+    phone:              document.getElementById('fPhone').value.trim(),
+    emergencyContact:   document.getElementById('fEmergency').value.trim(),
+    lvadDevice:         document.getElementById('fDevice').value.trim(),
+    lvadSettings:       document.getElementById('fSettings').value.trim(),
+    hospital:           document.getElementById('fHospital').value,
+    address:            document.getElementById('fAddress').value.trim(),
+    lat:                selectedLat,
+    lng:                selectedLng,
+    notes:              document.getElementById('fNotes').value.trim(),
+    implantCenter:      document.getElementById('fImplantCenter').value.trim(),
+    implantCenterPhone: document.getElementById('fImplantCenterPhone').value.trim(),
+    lvadBagLocation:    document.getElementById('fLVADBagLocation').value.trim(),
   };
 
   try {
@@ -513,14 +532,17 @@ document.getElementById('patientForm').addEventListener('submit', async e => {
 function startEdit(patient) {
   editingId = patient.id;
 
-  document.getElementById('fName').value      = patient.name || '';
-  document.getElementById('fPhone').value     = patient.phone || '';
-  document.getElementById('fEmergency').value = patient.emergencyContact || '';
-  document.getElementById('fDevice').value    = patient.lvadDevice || '';
-  document.getElementById('fSettings').value  = patient.lvadSettings || '';
-  document.getElementById('fHospital').value  = patient.hospital || '';
-  document.getElementById('fAddress').value   = patient.address || '';
-  document.getElementById('fNotes').value     = patient.notes || '';
+  document.getElementById('fName').value              = patient.name || '';
+  document.getElementById('fPhone').value             = patient.phone || '';
+  document.getElementById('fEmergency').value         = patient.emergencyContact || '';
+  document.getElementById('fDevice').value            = patient.lvadDevice || '';
+  document.getElementById('fSettings').value          = patient.lvadSettings || '';
+  document.getElementById('fHospital').value          = patient.hospital || '';
+  document.getElementById('fAddress').value           = patient.address || '';
+  document.getElementById('fNotes').value             = patient.notes || '';
+  document.getElementById('fImplantCenter').value     = patient.implantCenter || '';
+  document.getElementById('fImplantCenterPhone').value = patient.implantCenterPhone || '';
+  document.getElementById('fLVADBagLocation').value   = patient.lvadBagLocation || '';
   document.getElementById('fLat').value       = patient.lat;
   document.getElementById('fLng').value       = patient.lng;
   selectedLat = patient.lat;

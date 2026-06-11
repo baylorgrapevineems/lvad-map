@@ -499,10 +499,42 @@ function showDetail(patient) {
       <div class="panel-value">${esc(patient.address || '—')}</div>
     </div>
 
+    ${(patient.implantCenter || patient.implantCenterPhone) ? `
+    <hr class="panel-divider">
+    <p class="panel-section">Implant Center</p>
+    ${patient.implantCenter ? `
+    <div class="panel-field">
+      <div class="panel-label">Center</div>
+      <div class="panel-value">${esc(patient.implantCenter)}</div>
+    </div>` : ''}
+    ${patient.implantCenterPhone ? `
+    <div class="panel-field">
+      <div class="panel-label">Center Phone</div>
+      <div class="panel-row">
+        <span class="panel-value">${esc(patient.implantCenterPhone)}</span>
+        <button class="copy-btn" data-copy="${esc(patient.implantCenterPhone)}">Copy</button>
+      </div>
+    </div>` : ''}` : ''}
+
+    ${patient.lvadBagLocation ? `
+    <hr class="panel-divider">
+    <p class="panel-section">LVAD Bag</p>
+    <div class="panel-field">
+      <div class="panel-label">Bag Location</div>
+      <div class="panel-value">${esc(patient.lvadBagLocation)}</div>
+    </div>` : ''}
+
     ${patient.notes ? `
     <hr class="panel-divider">
     <p class="panel-section">Notes</p>
     <div class="notes-box">${esc(patient.notes)}</div>` : ''}
+
+    ${patient.lastEditedAt ? `
+    <hr class="panel-divider">
+    <div class="panel-label" style="margin-top:8px">
+      Last updated ${new Date(patient.lastEditedAt).toLocaleString()}
+      ${patient.lastEditedBy ? ' by ' + esc(patient.lastEditedBy) : ''}
+    </div>` : ''}
   `;
 
   document.getElementById('detailInner').innerHTML = html;
