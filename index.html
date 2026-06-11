@@ -403,10 +403,14 @@ function drawHospitalMarkers() {
         <rect x="125" y="25"  width="110" height="310"/>
         <rect x="25"  y="125" width="310" height="110"/>
       </clipPath></defs>
-      <rect x="0"   y="0"   width="180" height="180" fill="#1B3F8F" clip-path="url(#c-${h.id})"/>
-      <rect x="180" y="0"   width="180" height="180" fill="#F5B800" clip-path="url(#c-${h.id})"/>
-      <rect x="0"   y="180" width="180" height="180" fill="#29B3C8" clip-path="url(#c-${h.id})"/>
-      <rect x="180" y="180" width="180" height="180" fill="#1B3F8F" clip-path="url(#c-${h.id})"/>
+      <!-- Top arm: navy -->
+      <polygon points="180,180 0,0 360,0"     fill="#1B3F8F" clip-path="url(#c-${h.id})"/>
+      <!-- Right arm: teal -->
+      <polygon points="180,180 360,0 360,360"  fill="#29B3C8" clip-path="url(#c-${h.id})"/>
+      <!-- Bottom arm: gold -->
+      <polygon points="180,180 360,360 0,360"  fill="#F5B800" clip-path="url(#c-${h.id})"/>
+      <!-- Left arm: navy -->
+      <polygon points="180,180 0,360 0,0"      fill="#1B3F8F" clip-path="url(#c-${h.id})"/>
     </svg>`;
     el.title = h.name;
     el.addEventListener('click', () => {
