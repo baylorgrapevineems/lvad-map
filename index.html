@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -317,7 +317,7 @@ html, body { margin: 0; height: 100%; background: #f0f2f5; font-family: Arial, H
 
 <div id="topbar">
   <div class="title">
-    <span class="title-heart">â™¥</span>
+    <span class="title-heart">&#9829;</span>
     <span>LVAD Patient Monitor<span class="title-sub">A Baylor Grapevine EMS Solution</span></span>
   </div>
 
@@ -331,7 +331,7 @@ html, body { margin: 0; height: 100%; background: #f0f2f5; font-family: Arial, H
 
   <span class="patient-badge" id="patientCount">0 patients</span>
   <span class="last-updated" id="lastUpdated">â€”</span>
-  <button class="icon-btn" id="refreshBtn">â†» Refresh</button>
+  <button class="icon-btn" id="refreshBtn">&#8635; Refresh</button>
   <a href="admin.html" class="icon-btn">Admin</a>
 </div>
 
@@ -348,7 +348,7 @@ html, body { margin: 0; height: 100%; background: #f0f2f5; font-family: Arial, H
 </div>
 
 <div id="emptyState">
-  <div class="es-icon">â™¥</div>
+  <div class="es-icon">&#9829;</div>
   <p>No LVAD patients registered</p>
   <p class="es-sub">Add patients via the <a href="admin.html" style="color:#e74c3c">Admin panel</a></p>
 </div>
@@ -439,7 +439,7 @@ function drawPatientMarkers() {
     el.className = 'patient-marker' + (patient.id === activePatientId ? ' active' : '');
     const dot = document.createElement('div');
     dot.className = 'dot';
-    dot.innerHTML = 'â™¥';
+    dot.innerHTML = '&#9829;';
     el.appendChild(dot);
     el.addEventListener('click', () => showDetail(patient));
 
