@@ -7,24 +7,25 @@
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
+html, body { margin: 0; height: 100%; background: #f0f2f5; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
 
 /* TOP BAR */
 #topbar {
   position: fixed;
   top: 0; left: 0; right: 0;
   height: 60px;
-  background: rgba(8, 12, 24, 0.97);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  background: #ffffff;
+  border-bottom: 2px solid #1B3F8F;
   z-index: 200;
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 0 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .title {
-  color: #fff;
+  color: #1B3F8F;
   font-size: 17px;
   font-weight: bold;
   white-space: nowrap;
@@ -34,19 +35,19 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
   flex-shrink: 0;
 }
 .title-heart { color: #e74c3c; font-size: 22px; }
-.title-sub   { color: rgba(255,255,255,0.35); font-size: 11px; font-weight: normal; display: block; }
+.title-sub   { color: #888; font-size: 11px; font-weight: normal; display: block; }
 
 .topbar-select {
   padding: 7px 11px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.18);
+  background: #f8f9fa;
+  border: 1px solid #d0d4db;
   border-radius: 7px;
-  color: #fff;
+  color: #1a1a2e;
   font-size: 13px;
   cursor: pointer;
   min-width: 0;
 }
-.topbar-select option { background: #1a1a2e; color: #fff; }
+.topbar-select option { background: #fff; color: #1a1a2e; }
 
 #hospitalSelect { flex: 1; max-width: 350px; }
 #filterSelect   { width: 180px; }
@@ -63,16 +64,16 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 }
 
 .last-updated {
-  color: rgba(255,255,255,0.35);
+  color: #999;
   font-size: 11px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .icon-btn {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: rgba(255,255,255,0.8);
+  background: #f0f2f5;
+  border: 1px solid #d0d4db;
+  color: #1a1a2e;
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 13px;
@@ -81,7 +82,7 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
   flex-shrink: 0;
   text-decoration: none;
 }
-.icon-btn:hover { background: rgba(255,255,255,0.16); }
+.icon-btn:hover { background: #e0e3e8; }
 
 /* MAP */
 #map {
@@ -91,20 +92,20 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 
 /* HOSPITAL MARKER */
 .hospital-marker {
-  width: 34px; height: 34px;
-  background: #1a5fcc;
-  border: 3px solid rgba(255,255,255,0.9);
+  width: 40px; height: 40px;
+  background: #fff;
+  border: 2px solid #1B3F8F;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-weight: bold;
-  font-size: 17px;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
   transition: transform 0.15s;
+  overflow: hidden;
+  padding: 5px;
 }
+.hospital-marker img { width: 100%; height: 100%; object-fit: contain; }
 .hospital-marker:hover { transform: scale(1.15); }
 
 /* LVAD PATIENT MARKER */
@@ -149,13 +150,14 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
   top: 60px; right: -400px;
   width: 370px;
   bottom: 0;
-  background: #0d1220;
-  border-left: 1px solid rgba(255,255,255,0.1);
+  background: #ffffff;
+  border-left: 2px solid #1B3F8F;
   z-index: 300;
   transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.15) transparent;
+  scrollbar-color: #d0d4db transparent;
+  box-shadow: -4px 0 16px rgba(0,0,0,0.1);
 }
 #detailPanel.open { right: 0; }
 
@@ -164,9 +166,9 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 .panel-close {
   position: absolute;
   top: 14px; right: 14px;
-  background: rgba(255,255,255,0.1);
+  background: #f0f2f5;
   border: none;
-  color: #fff;
+  color: #1a1a2e;
   width: 28px; height: 28px;
   border-radius: 50%;
   font-size: 16px;
@@ -176,7 +178,7 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
   justify-content: center;
   line-height: 1;
 }
-.panel-close:hover { background: rgba(255,255,255,0.22); }
+.panel-close:hover { background: #e0e3e8; }
 
 .panel-tag {
   display: inline-block;
@@ -192,7 +194,7 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 }
 
 .panel-name {
-  color: #fff;
+  color: #1a1a2e;
   font-size: 22px;
   font-weight: bold;
   margin: 0 36px 3px 0;
@@ -200,7 +202,7 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 }
 
 .panel-hosp {
-  color: rgba(255,255,255,0.4);
+  color: #888;
   font-size: 12px;
   margin-bottom: 18px;
 }
@@ -212,7 +214,7 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 }
 
 .panel-section {
-  color: rgba(255,255,255,0.35);
+  color: #1B3F8F;
   font-size: 10px;
   font-weight: bold;
   letter-spacing: 0.1em;
@@ -223,7 +225,7 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 .panel-field { margin-bottom: 12px; }
 
 .panel-label {
-  color: rgba(255,255,255,0.38);
+  color: #999;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -231,7 +233,7 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 }
 
 .panel-value {
-  color: #fff;
+  color: #1a1a2e;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -243,34 +245,34 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 }
 
 .copy-btn {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: rgba(255,255,255,0.65);
+  background: #f0f2f5;
+  border: 1px solid #d0d4db;
+  color: #555;
   border-radius: 4px;
   padding: 3px 9px;
   font-size: 11px;
   cursor: pointer;
   flex-shrink: 0;
 }
-.copy-btn:hover  { background: rgba(255,255,255,0.16); }
-.copy-btn.copied { color: #2ecc71; border-color: #2ecc71; }
+.copy-btn:hover  { background: #e0e3e8; }
+.copy-btn.copied { color: #1e7a34; border-color: #1e7a34; }
 
 .device-card {
-  background: rgba(231, 76, 60, 0.12);
-  border: 1px solid rgba(231, 76, 60, 0.28);
+  background: #fff5f5;
+  border: 1px solid #f5c6c6;
   border-radius: 8px;
   padding: 12px 14px;
   margin-bottom: 4px;
 }
-.device-name     { color: #fff; font-size: 15px; font-weight: bold; margin-bottom: 3px; }
-.device-settings { color: rgba(255,255,255,0.65); font-size: 13px; }
+.device-name     { color: #1a1a2e; font-size: 15px; font-weight: bold; margin-bottom: 3px; }
+.device-settings { color: #555; font-size: 13px; }
 
 .notes-box {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: #f8f9fa;
+  border: 1px solid #e0e3e8;
   border-radius: 6px;
   padding: 10px 12px;
-  color: rgba(255,255,255,0.65);
+  color: #555;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -279,19 +281,20 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
 #legend {
   position: fixed;
   bottom: 28px; left: 20px;
-  background: rgba(8, 12, 24, 0.88);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: #ffffff;
+  border: 1px solid #d0d4db;
   border-radius: 10px;
   padding: 11px 15px;
   z-index: 200;
-  color: #fff;
+  color: #1a1a2e;
   font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 .leg { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; }
 .leg:last-child { margin-bottom: 0; }
 .leg-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .leg-red  { background: #e74c3c; }
-.leg-blue { background: #1a5fcc; border: 2px solid rgba(255,255,255,0.8); }
+.leg-blue { background: #1B3F8F; border: 2px solid #fff; outline: 1px solid #1B3F8F; }
 
 /* EMPTY STATE */
 #emptyState {
@@ -299,7 +302,7 @@ html, body { margin: 0; height: 100%; background: #0a0e1a; font-family: Arial, H
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  color: rgba(255,255,255,0.35);
+  color: #aaa;
   z-index: 150;
   pointer-events: none;
   display: none;
@@ -365,7 +368,7 @@ let filterHospId    = '';
 
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/dark-v11',
+  style: 'mapbox://styles/mapbox/light-v11',
   attributionControl: false,
   interactive: true
 });
@@ -395,7 +398,7 @@ function drawHospitalMarkers() {
   hospitals.forEach(h => {
     const el = document.createElement('div');
     el.className = 'hospital-marker';
-    el.innerHTML = '+';
+    el.innerHTML = '<img src="/baylor-logo.svg" alt="BSW">';
     el.title = h.name;
     el.addEventListener('click', () => {
       document.getElementById('hospitalSelect').value = h.id;

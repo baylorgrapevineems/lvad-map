@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360">
+  <defs>
+    <clipPath id="cross">
+      <rect x="125" y="25"  width="110" height="310"/>
+      <rect x="25"  y="125" width="310" height="110"/>
+    </clipPath>
+  </defs>
+  <!-- Top-left quadrant: navy -->
+  <rect x="0"   y="0"   width="180" height="180" fill="#1B3F8F" clip-path="url(#cross)"/>
+  <!-- Top-right quadrant: gold -->
+  <rect x="180" y="0"   width="180" height="180" fill="#F5B800" clip-path="url(#cross)"/>
+  <!-- Bottom-left quadrant: teal -->
+  <rect x="0"   y="180" width="180" height="180" fill="#29B3C8" clip-path="url(#cross)"/>
+  <!-- Bottom-right quadrant: navy -->
+  <rect x="180" y="180" width="180" height="180" fill="#1B3F8F" clip-path="url(#cross)"/>
+</svg>
