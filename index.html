@@ -398,7 +398,16 @@ function drawHospitalMarkers() {
   hospitals.forEach(h => {
     const el = document.createElement('div');
     el.className = 'hospital-marker';
-    el.innerHTML = '<img src="/baylor-logo.svg" alt="BSW">';
+    el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" style="width:100%;height:100%">
+      <defs><clipPath id="c-${h.id}">
+        <rect x="125" y="25"  width="110" height="310"/>
+        <rect x="25"  y="125" width="310" height="110"/>
+      </clipPath></defs>
+      <rect x="0"   y="0"   width="180" height="180" fill="#1B3F8F" clip-path="url(#c-${h.id})"/>
+      <rect x="180" y="0"   width="180" height="180" fill="#F5B800" clip-path="url(#c-${h.id})"/>
+      <rect x="0"   y="180" width="180" height="180" fill="#29B3C8" clip-path="url(#c-${h.id})"/>
+      <rect x="180" y="180" width="180" height="180" fill="#1B3F8F" clip-path="url(#c-${h.id})"/>
+    </svg>`;
     el.title = h.name;
     el.addEventListener('click', () => {
       document.getElementById('hospitalSelect').value = h.id;
