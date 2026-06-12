@@ -18,6 +18,7 @@ const SP = {
 const USE_SP    = !!(SP.tenantId && SP.clientId && SP.clientSecret && SP.siteUrl);
 const USE_KV    = !USE_SP && !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 const DATA_FILE = path.join(__dirname, 'lvad_patients.json');
+const HOSP_FILE = path.join(__dirname, 'lvad_hospitals.json');
 
 // ─── HOSPITALS (static reference data) ───────────────────────────────────────
 const HOSPITALS = [
@@ -181,8 +182,59 @@ async function localWrite(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
+async function hospExtrasRead() {
+  if (USE_KV) {
+    const { Redis } = await import('@upstash/redis');
+    const redis = new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN });
+    return (await redis.get('lvad:hospitals')) || {};
+  }
+  if (!fs.existsSync(HOSP_FILE)) return {};
+  return JSON.parse(fs.readFileSync(HOSP_FILE, 'utf8'));
+}
+
+async function hospExtrasWrite(data) {
+  if (USE_KV) {
+    const { Redis } = await import('@upstash/redis');
+    const redis = new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN });
+    await redis.set('lvad:hospitals', data);
+    return;
+  }
+  fs.writeFileSync(HOSP_FILE, JSON.stringify(data, null, 2));
+}
+
 // ─── ROUTES ───────────────────────────────────────────────────────────────────
-app.get('/api/hospitals', (_req, res) => res.json(HOSPITALS));
+app.get('/api/hospitals', async (_req, res) => {
+  try {
+    const extras = await hospExtrasRead();
+    res.json(HOSPITALS.map(h => ({
+      ...h,
+      address:      (extras[h.id] || {}).address      || '',
+      phone:        (extras[h.id] || {}).phone        || '',
+      capabilities: (extras[h.id] || {}).capabilities || '',
+    })));
+  } catch {
+    res.json(HOSPITALS);
+  }
+});
+
+app.put('/api/hospitals/:id', async (req, res) => {
+  try {
+    if (!HOSPITALS.find(h => h.id === req.params.id))
+      return res.status(404).json({ error: 'Hospital not found' });
+    const { address, phone, capabilities } = req.body;
+    const extras = await hospExtrasRead();
+    extras[req.params.id] = {
+      address:      address      || '',
+      phone:        phone        || '',
+      capabilities: capabilities || '',
+    };
+    await hospExtrasWrite(extras);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[PUT /api/hospitals]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // GET all patients
 app.get('/api/patients', async (_req, res) => {

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>LVAD Patient Monitor â€“ BSW DFW</title>
+<title>LVAD Patient Monitor &ndash; BSW DFW</title>
 <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 <style>
@@ -193,6 +193,9 @@ html, body { margin: 0; height: 100%; background: #f0f2f5; font-family: Arial, H
   margin-bottom: 10px;
 }
 
+.panel-tag-hosp { background: #1B3F8F; }
+.panel-patient-link:hover { background: #f5f7fa; border-radius: 6px; }
+
 .panel-name {
   color: #1a1a2e;
   font-size: 22px;
@@ -322,7 +325,7 @@ html, body { margin: 0; height: 100%; background: #f0f2f5; font-family: Arial, H
   </div>
 
   <select id="hospitalSelect" class="topbar-select" title="Center map on hospital">
-    <option value="">â€” Center on Hospital â€”</option>
+    <option value="">&mdash; Center on Hospital &mdash;</option>
   </select>
 
   <select id="filterSelect" class="topbar-select" title="Filter patients by hospital">
@@ -330,7 +333,7 @@ html, body { margin: 0; height: 100%; background: #f0f2f5; font-family: Arial, H
   </select>
 
   <span class="patient-badge" id="patientCount">0 patients</span>
-  <span class="last-updated" id="lastUpdated">â€”</span>
+  <span class="last-updated" id="lastUpdated">&mdash;</span>
   <button class="icon-btn" id="refreshBtn">&#8635; Refresh</button>
   <a href="admin.html" class="icon-btn">Admin</a>
 </div>
@@ -338,7 +341,7 @@ html, body { margin: 0; height: 100%; background: #f0f2f5; font-family: Arial, H
 <div id="map"></div>
 
 <div id="detailPanel">
-  <button class="panel-close" id="panelClose" title="Close">âœ•</button>
+  <button class="panel-close" id="panelClose" title="Close">&#10005;</button>
   <div id="detailInner"></div>
 </div>
 
@@ -402,7 +405,7 @@ function drawHospitalMarkers() {
     el.title = h.name;
     el.addEventListener('click', () => {
       document.getElementById('hospitalSelect').value = h.id;
-      flyTo(h.lng, h.lat, 12);
+      showHospitalDetail(h);
     });
     hospitalMarkers.push(
       new mapboxgl.Marker({ element: el, anchor: 'center' })
@@ -460,7 +463,7 @@ function showDetail(patient) {
   drawPatientMarkers();
 
   const hosp = hospitals.find(h => h.id === patient.hospital);
-  const hospName = hosp ? hosp.name : (patient.hospital || 'â€”');
+  const hospName = hosp ? hosp.name : (patient.hospital || '&mdash;');
 
   const html = `
     <div class="panel-tag">LVAD Patient</div>
@@ -499,7 +502,7 @@ function showDetail(patient) {
 
     <div class="panel-field">
       <div class="panel-label">Address</div>
-      <div class="panel-value">${esc(patient.address || 'â€”')}</div>
+      <div class="panel-value">${esc(patient.address || '&mdash;')}</div>
     </div>
 
     ${(patient.implantCenter || patient.implantCenterPhone) ? `
@@ -554,6 +557,73 @@ function showDetail(patient) {
 
   document.getElementById('detailPanel').classList.add('open');
   flyTo(patient.lng, patient.lat, 13);
+}
+
+function showHospitalDetail(h) {
+  activePatientId = null;
+  drawPatientMarkers();
+  const nearbyPatients = patients.filter(p => p.hospital === h.id);
+
+  const patientsHtml = nearbyPatients.length
+    ? nearbyPatients.map(p => `
+        <div class="panel-field panel-patient-link" data-pid="${p.id}" style="cursor:pointer;padding:6px 0">
+          <div class="panel-row">
+            <span class="panel-value">${esc(p.name)}</span>
+            <span style="color:#888;font-size:12px">${esc(p.lvadDevice || '')}</span>
+          </div>
+        </div>`).join('')
+    : '<div style="color:#999;font-size:13px;padding:8px 0">No registered patients at this location.</div>';
+
+  const detail = `
+    <div class="panel-tag panel-tag-hosp">BSW Hospital</div>
+    <h2 class="panel-name">${esc(h.name)}</h2>
+    ${(h.address || h.phone) ? `
+    <hr class="panel-divider">
+    <p class="panel-section">Contact</p>
+    ${h.address ? `<div class="panel-field">
+      <div class="panel-label">Address</div>
+      <div class="panel-row">
+        <span class="panel-value">${esc(h.address)}</span>
+        <button class="copy-btn" data-copy="${esc(h.address)}">Copy</button>
+      </div>
+    </div>` : ''}
+    ${h.phone ? `<div class="panel-field">
+      <div class="panel-label">Phone</div>
+      <div class="panel-row">
+        <span class="panel-value">${esc(h.phone)}</span>
+        <button class="copy-btn" data-copy="${esc(h.phone)}">Copy</button>
+      </div>
+    </div>` : ''}` : ''}
+    ${h.capabilities ? `
+    <hr class="panel-divider">
+    <p class="panel-section">Capabilities</p>
+    <div class="notes-box">${esc(h.capabilities)}</div>` : ''}
+    <hr class="panel-divider">
+    <p class="panel-section">LVAD Patients (${nearbyPatients.length})</p>
+    ${patientsHtml}
+  `;
+
+  document.getElementById('detailInner').innerHTML = detail;
+
+  document.querySelectorAll('.copy-btn[data-copy]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+      });
+    });
+  });
+
+  document.querySelectorAll('.panel-patient-link[data-pid]').forEach(el => {
+    el.addEventListener('click', () => {
+      const p = patients.find(x => x.id === el.dataset.pid);
+      if (p) showDetail(p);
+    });
+  });
+
+  document.getElementById('detailPanel').classList.add('open');
+  flyTo(h.lng, h.lat, 12);
 }
 
 function closeDetail() {

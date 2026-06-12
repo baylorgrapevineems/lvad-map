@@ -380,6 +380,38 @@ datalist option { background: #fff; }
   </div>
 </div>
 
+  <!-- HOSPITALS -->
+  <div class="card" style="margin-top: 20px;" id="hospitalsCard">
+    <div class="cases-header">
+      <h2>Hospital Details</h2>
+      <span style="font-size:12px;color:#999">Click Edit to update address, phone &amp; capabilities</span>
+    </div>
+
+    <div id="hospEditForm" style="display:none; padding:16px 0; border-bottom:2px solid #f0f2f5; margin-bottom:16px;">
+      <h3 id="hospEditTitle" style="margin:0 0 14px;font-size:15px;color:#1B3F8F"></h3>
+      <div class="form-two">
+        <div class="form-row">
+          <label>Address</label>
+          <input type="text" id="hAddress" placeholder="e.g. 3500 Gaston Ave, Dallas, TX 75246">
+        </div>
+        <div class="form-row">
+          <label>Phone</label>
+          <input type="text" id="hPhone" placeholder="(214) 820-0111">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Capabilities</label>
+        <textarea id="hCapabilities" rows="3" placeholder="e.g. LVAD implantation, VAD clinic, cardiac surgery, 24/7 LVAD coordinator on call" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit"></textarea>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button id="hospSaveBtn" class="btn-primary">Save Hospital</button>
+        <button id="hospCancelBtn" class="btn-cancel show">Cancel</button>
+      </div>
+    </div>
+
+    <div id="hospitalList"></div>
+  </div>
+
 <div id="toast"></div>
 
 <script>
@@ -416,6 +448,7 @@ async function loadHospitals() {
   const res = await fetch('/api/hospitals');
   hospitals = await res.json();
   const sel = document.getElementById('fHospital');
+  while (sel.options.length > 1) sel.remove(1);
   hospitals.forEach(h => sel.appendChild(new Option(h.name, h.id)));
 }
 
@@ -676,8 +709,85 @@ function esc(str) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+
+/* ---- HOSPITALS EDIT ---- */
+let editingHospId = null;
+
+async function loadHospitalList() {
+  const container = document.getElementById('hospitalList');
+  if (!hospitals.length) {
+    container.innerHTML = '<div class="empty-state">No hospitals loaded.</div>';
+    return;
+  }
+  const rows = hospitals.map(h => `
+    <tr>
+      <td style="font-weight:500;font-size:13px">${esc(h.name)}</td>
+      <td style="color:#555;font-size:12px">${esc(h.address || '&mdash;')}</td>
+      <td style="color:#555;font-size:12px">${esc(h.phone || '&mdash;')}</td>
+      <td style="color:#555;font-size:12px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.capabilities || '&mdash;')}</td>
+      <td><button class="edit-btn" data-hospid="${h.id}">Edit</button></td>
+    </tr>`).join('');
+  container.innerHTML = `
+    <table>
+      <thead><tr><th>Hospital</th><th>Address</th><th>Phone</th><th>Capabilities</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  container.querySelectorAll('.edit-btn[data-hospid]').forEach(btn => {
+    btn.addEventListener('click', () => startHospitalEdit(btn.dataset.hospid));
+  });
+}
+
+function startHospitalEdit(hid) {
+  const h = hospitals.find(x => x.id === hid);
+  if (!h) return;
+  editingHospId = hid;
+  document.getElementById('hospEditTitle').textContent = 'Editing: ' + h.name;
+  document.getElementById('hAddress').value = h.address || '';
+  document.getElementById('hPhone').value = h.phone || '';
+  document.getElementById('hCapabilities').value = h.capabilities || '';
+  document.getElementById('hospEditForm').style.display = '';
+  document.getElementById('hospitalsCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('hospSaveBtn').addEventListener('click', async () => {
+  if (!editingHospId) return;
+  const btn = document.getElementById('hospSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const res = await fetch(`/api/hospitals/${editingHospId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address:      document.getElementById('hAddress').value.trim(),
+        phone:        document.getElementById('hPhone').value.trim(),
+        capabilities: document.getElementById('hCapabilities').value.trim(),
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    showToast('Hospital updated.', 'ok');
+    resetHospitalEdit();
+    await loadHospitals();
+    loadHospitalList();
+  } catch (err) {
+    showToast(err.message, 'error');
+    btn.disabled = false; btn.textContent = 'Save Hospital';
+  }
+});
+
+function resetHospitalEdit() {
+  editingHospId = null;
+  document.getElementById('hospEditForm').style.display = 'none';
+  document.getElementById('hAddress').value = '';
+  document.getElementById('hPhone').value = '';
+  document.getElementById('hCapabilities').value = '';
+  document.getElementById('hospSaveBtn').disabled = false;
+  document.getElementById('hospSaveBtn').textContent = 'Save Hospital';
+}
+
+document.getElementById('hospCancelBtn').addEventListener('click', resetHospitalEdit);
 /* ---- INIT ---- */
-loadHospitals().then(loadPatients);
+loadHospitals().then(() => { loadPatients(); loadHospitalList(); });
 </script>
 </body>
 </html>
